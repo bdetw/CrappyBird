@@ -791,27 +791,31 @@
 			
 				return medal;
 			}
-			this.getHighScore = function(){
-				var savedscore = getCookie("highscore");
-			    if(savedscore != ""){
+			this.getHighScore = async function(){
+				//var savedscore = getCookie("highscore");
+				var savedscore = await crappyBird.methods.getHighScore().call({ from: userAccount });
+
+				if(savedscore != "" && savedscore !== 'undefined'){
 					var hs = parseInt(savedscore) || 0;
 					if(hs < FB.score.coins)
 					{
-					 hs = FB.score.coins
-					 setCookie("highscore", hs, 999);
+					 hs = FB.score.coins;
+					 //setCookie("highscore", hs, 999);
+						await crappyBird.methods.setHighScore(hs).send({ from: userAccount });
 					}
 					return hs;
 				  }
 				  else
 				  {					 
-					setCookie("highscore", FB.score.coins, 999);
+					//setCookie("highscore", FB.score.coins, 999);
+					  await crappyBird.methods.setHighScore(FB.score.coins).send({ from: userAccount });
 					return  FB.score.coins;
 				  }
 			}
 			this.init = function(){
 						
 			    var that = this;
-				setTimeout(function() {
+				setTimeout(async function() {
 					play_sound(soundDie);
 					that.banner = new Image();
 					that.banner.src = "scoreboard.png";
@@ -820,7 +824,7 @@
 					that.medal.src = 'medal_' + m +'.png';
 					that.replay = new Image();
 					that.replay.src = "replay.png";
-					that.highscore = that.getHighScore() ;
+					that.highscore = await that.getHighScore() ;
 				}, 500);
 				
 			}
@@ -850,10 +854,50 @@
 		
 		}
 
-        window.addEventListener('load', FB.init, false);
+        //window.addEventListener('load', FB.init, false);
         window.addEventListener('resize', FB.resize, false);
     </script>
+	
+	<script>
+		var crappyBird;
+		var userAccount;
 
+		window.addEventListener('load', async () => {
+			if (typeof ethereum !== 'undefined') {
+				web3js = new Web3(ethereum);
+				await ethereum.enable();
+				startApp();
+				console.log("userAccount = " + userAccount);
+				FB.init();
+			}
+			else if (typeof web3 !== 'undefined') {
+				web3js = new Web3(web3.currentProvider);
+				startApp();
+				console.log("userAccount = " + userAccount);
+				FB.init();
+			} else {
+				alert("請先安裝MetaMask");
+			}
+		});
+
+		function startApp() {
+			var crappyBirdAddress = "0x77b0AB154BC318A2Ff9F6f40Af365Ef3C4d630Fa";
+        	crappyBird = new web3js.eth.Contract(CrappyBirdABI, crappyBirdAddress);
+			var accountInterval = setInterval(function() {
+			  // Check if account has changed
+				web3.eth.getAccounts(function(err, result){
+					if (result[0] !== userAccount) {
+						userAccount = result[0];
+						console.log("userAccount = " + userAccount);
+					}
+				});
+			}, 100);
+		}
+		
+	</script>
+	
+	<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
+	<script src="crappybird_abi.js"></script>
 </body>
 
 </html>
